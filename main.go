@@ -36,7 +36,7 @@ func isSomeWords(s string) bool {
 
 func maybeTypo(s string) float64 {
 	s = strings.ToLower(s)
-	l := float64(len(s))
+	l := float64(len([]rune(s)))
 	m := l
 	for _, w := range words {
 		mm := float64(lsd.StringDistance(w, s))
