@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"sort"
 	"strings"
@@ -61,15 +62,23 @@ func tokenize(s string) []string {
 	return ts
 }
 
-func main() {
-	var min int
-	flag.IntVar(&min, "min", 4, "minimum length for words")
-	flag.Parse()
-
+func loadWords(files []string) error {
+	// built-in
 	words = strings.Split(wordlist, "\n")
 
+	for _, file := range files {
+		f, err := os.Open(file)
+		if err != nil {
+			return err
+		}
+		scanner := bufio.NewScanner(f)
+		for scanner.Scan() {
+			words = append(words, scanner.Text())
+		}
+		f.Close()
+	}
 	for i := 0; i < len(words); i++ {
-		if len(words[i]) == 0 {
+		if len(words[i]) == 0 || words[i][0] == '#' {
 			words = words[:i+copy(words[i:], words[i+1:])]
 		}
 	}
@@ -80,6 +89,30 @@ func main() {
 		if words[i-1] == words[i] {
 			words = words[:i+copy(words[i:], words[i+1:])]
 		}
+	}
+	return nil
+}
+
+type wordFiles []string
+
+func (i *wordFiles) String() string {
+	return "word file"
+}
+
+func (i *wordFiles) Set(value string) error {
+	*i = append(*i, value)
+	return nil
+}
+
+func main() {
+	var min int
+	var files wordFiles
+	flag.Var(&files, "d", "word file")
+	flag.IntVar(&min, "min", 4, "minimum length for words")
+	flag.Parse()
+
+	if err := loadWords(files); err != nil {
+		log.Fatal(err)
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)
