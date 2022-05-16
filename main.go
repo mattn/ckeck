@@ -5,7 +5,7 @@ import (
 	_ "embed"
 	"flag"
 	"fmt"
-	"log"
+	"io"
 	"os"
 	"runtime"
 	"sort"
@@ -111,7 +111,7 @@ func (i *wordFiles) Set(value string) error {
 	return nil
 }
 
-func main() {
+func run() int {
 	var showVersion bool
 	var min int
 	var files wordFiles
@@ -122,14 +122,30 @@ func main() {
 
 	if showVersion {
 		fmt.Printf("%s %s (rev: %s/%s)\n", name, version, revision, runtime.Version())
-		return
+		return 0
+	}
+
+	var in io.Reader = os.Stdin
+	if flag.NArg() == 1 {
+		f, err := os.Open(flag.Arg(0))
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 1
+		}
+		defer f.Close()
+		in = f
+	} else if flag.NArg() > 1 {
+		flag.Usage()
+		return 1
 	}
 
 	if err := loadWords(files); err != nil {
-		log.Fatal(err)
+		fmt.Fprintln(os.Stderr, err)
+		return 1
 	}
 
-	scanner := bufio.NewScanner(os.Stdin)
+	code := 0
+	scanner := bufio.NewScanner(in)
 	scanner.Split(unicodeclass.SplitClass)
 	for scanner.Scan() {
 		s := scanner.Text()
@@ -142,7 +158,14 @@ func main() {
 				fmt.Fprint(color.Output, token)
 			} else {
 				fmt.Fprint(color.Output, color.CyanString(token))
+				code = 1
 			}
 		}
 	}
+
+	return code
+}
+
+func main() {
+	os.Exit(run())
 }
