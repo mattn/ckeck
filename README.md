@@ -1,4 +1,4 @@
-# [WIP] ckeck
+# ckeck
 
 Poorman's typo checker
 
