@@ -47,6 +47,20 @@ func maybeTypo(s string) float64 {
 	return m / l
 }
 
+func tokenize(s string) []string {
+	ts := []string{}
+	prev := 0
+	rs := []rune(s)
+	for i := 1; i < len(rs); i++ {
+		if unicode.IsSymbol(rs[prev]) != unicode.IsSymbol(rs[i]) {
+			ts = append(ts, string(rs[prev:i]))
+			prev = i
+		}
+	}
+	ts = append(ts, string(rs[prev:]))
+	return ts
+}
+
 func main() {
 	var min int
 	flag.IntVar(&min, "min", 4, "minimum length for words")
@@ -66,14 +80,16 @@ func main() {
 	scanner.Split(unicodeclass.SplitClass)
 	for scanner.Scan() {
 		s := scanner.Text()
-		if !unicode.IsLetter(rune(s[0])) {
-			fmt.Fprint(color.Output, s)
-		} else if len(s) < min || isSomeWords(strings.ToLower(s)) {
-			fmt.Fprint(color.Output, s)
-		} else if v := maybeTypo(s); v != 0 && v > 0.4 {
-			fmt.Fprint(color.Output, s)
-		} else {
-			fmt.Fprint(color.Output, color.CyanString(s))
+		for _, token := range tokenize(s) {
+			if !unicode.IsLetter(rune(token[0])) {
+				fmt.Fprint(color.Output, token)
+			} else if len(token) < min || isSomeWords(strings.ToLower(token)) {
+				fmt.Fprint(color.Output, token)
+			} else if v := maybeTypo(token); v != 0 && v > 0.4 {
+				fmt.Fprint(color.Output, token)
+			} else {
+				fmt.Fprint(color.Output, color.CyanString(token))
+			}
 		}
 	}
 }
