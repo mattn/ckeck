@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/fatih/color v1.13.0
+	github.com/mattn/go-lsd v0.0.0-20211202020058-45013428513d
 	github.com/mattn/go-unicodeclass v0.0.2
 )
 
