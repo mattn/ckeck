@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 	"sort"
 	"strings"
 	"unicode"
@@ -15,6 +16,12 @@ import (
 	"github.com/mattn/go-lsd"
 	"github.com/mattn/go-unicodeclass"
 )
+
+const name = "ckeck"
+
+const version = "0.0.1"
+
+var revision = "HEAD"
 
 var words []string
 
@@ -105,11 +112,18 @@ func (i *wordFiles) Set(value string) error {
 }
 
 func main() {
+	var showVersion bool
 	var min int
 	var files wordFiles
 	flag.Var(&files, "d", "word file")
 	flag.IntVar(&min, "min", 4, "minimum length for words")
+	flag.BoolVar(&showVersion, "V", false, "Print the version")
 	flag.Parse()
+
+	if showVersion {
+		fmt.Printf("%s %s (rev: %s/%s)\n", name, version, revision, runtime.Version())
+		return
+	}
 
 	if err := loadWords(files); err != nil {
 		log.Fatal(err)
