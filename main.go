@@ -67,6 +67,7 @@ func main() {
 	flag.Parse()
 
 	words = strings.Split(wordlist, "\n")
+
 	for i := 0; i < len(words); i++ {
 		if len(words[i]) == 0 {
 			words = words[:i+copy(words[i:], words[i+1:])]
@@ -75,6 +76,11 @@ func main() {
 	sort.Slice(words, func(i, j int) bool {
 		return len(words[i]) > len(words[j])
 	})
+	for i := 1; i < len(words); i++ {
+		if words[i-1] == words[i] {
+			words = words[:i+copy(words[i:], words[i+1:])]
+		}
+	}
 
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Split(unicodeclass.SplitClass)
