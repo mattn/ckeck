@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	_ "embed"
 	"flag"
 	"fmt"
@@ -60,7 +61,7 @@ func tokenize(s string) []string {
 	prev := 0
 	rs := []rune(s)
 	for i := 1; i < len(rs); i++ {
-		if unicode.IsSymbol(rs[prev]) != unicode.IsSymbol(rs[i]) {
+		if unicode.IsSpace(rs[prev]) != unicode.IsSpace(rs[i]) || unicode.IsSymbol(rs[prev]) != unicode.IsSymbol(rs[i]) {
 			ts = append(ts, string(rs[prev:i]))
 			prev = i
 		}
@@ -113,10 +114,12 @@ func (i *wordFiles) Set(value string) error {
 
 func run() int {
 	var showVersion bool
+	var errlist bool
 	var min int
 	var files wordFiles
 	flag.Var(&files, "d", "word file")
 	flag.IntVar(&min, "min", 4, "minimum length for words")
+	flag.BoolVar(&errlist, "u", false, "show error list")
 	flag.BoolVar(&showVersion, "V", false, "Print the version")
 	flag.Parse()
 
@@ -126,8 +129,12 @@ func run() int {
 	}
 
 	var in io.Reader = os.Stdin
+	var out io.Writer = color.Output
+	var filename string = "stdin"
+
 	if flag.NArg() == 1 {
-		f, err := os.Open(flag.Arg(0))
+		filename = flag.Arg(0)
+		f, err := os.Open(filename)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return 1
@@ -144,23 +151,43 @@ func run() int {
 		return 1
 	}
 
-	code := 0
 	scanner := bufio.NewScanner(in)
-	scanner.Split(unicodeclass.SplitClass)
+
+	code := 0
+	nl := 1
 	for scanner.Scan() {
+		var buf bytes.Buffer
+		wrong := -1
+		col := 1
+
 		s := scanner.Text()
-		for _, token := range tokenize(s) {
-			if !unicode.IsLetter(rune(token[0])) {
-				fmt.Fprint(color.Output, token)
-			} else if len(token) < min || isSomeWords(strings.ToLower(token)) {
-				fmt.Fprint(color.Output, token)
-			} else if v := maybeTypo(token); v != 0 && v > 0.4 {
-				fmt.Fprint(color.Output, token)
-			} else {
-				fmt.Fprint(color.Output, color.CyanString(token))
-				code = 1
+		for _, tok := range unicodeclass.Split(s) {
+			for _, token := range tokenize(tok) {
+				if len(token) > 0 && !unicode.IsLetter(rune(token[0])) {
+					fmt.Fprint(&buf, token)
+				} else if len(token) < min || isSomeWords(strings.ToLower(token)) {
+					fmt.Fprint(&buf, token)
+				} else if v := maybeTypo(token); v != 0 && v > 0.4 {
+					fmt.Fprint(&buf, token)
+				} else {
+					fmt.Fprint(&buf, color.CyanString(token))
+					if wrong == -1 {
+						wrong = col
+					}
+				}
+				col += len(token)
 			}
 		}
+		if errlist {
+			if wrong != -1 {
+				fmt.Fprintf(out, "%s:%d:%d:%s\n", filename, nl, wrong, buf.String())
+				code = 1
+			}
+		} else {
+			fmt.Fprintln(out, buf.String())
+		}
+
+		nl += 1
 	}
 
 	return code
