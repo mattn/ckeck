@@ -14,7 +14,7 @@ import (
 	"unicode"
 
 	"github.com/fatih/color"
-	"github.com/mattn/go-lsd"
+	"github.com/mattn/go-jsd"
 	"github.com/mattn/go-unicodeclass"
 )
 
@@ -45,15 +45,14 @@ func isSomeWords(s string) bool {
 
 func maybeTypo(s string) float64 {
 	s = strings.ToLower(s)
-	l := float64(len([]rune(s)))
-	m := l
+	m := 0.0
 	for _, w := range words {
-		mm := float64(lsd.StringDistance(w, s))
-		if mm < m {
+		mm := jsd.StringDistance(w, s)
+		if mm > m {
 			m = mm
 		}
 	}
-	return m / l
+	return m
 }
 
 func tokenize(s string) []string {
@@ -167,7 +166,7 @@ func run() int {
 					fmt.Fprint(&buf, token)
 				} else if len(token) < min || isSomeWords(strings.ToLower(token)) {
 					fmt.Fprint(&buf, token)
-				} else if v := maybeTypo(token); v != 0 && v > 0.4 {
+				} else if v := maybeTypo(token); v != 0 && v < 0.8 {
 					fmt.Fprint(&buf, token)
 				} else {
 					fmt.Fprint(&buf, color.CyanString(token))
